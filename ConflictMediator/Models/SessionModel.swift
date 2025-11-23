@@ -7,6 +7,13 @@ enum Speaker: String, Codable {
     case none = "없음"
 }
 
+enum EmotionalState: String, Codable {
+    case hurt = "상함"
+    case neutral = "보통"
+    case good = "좋음"
+    case resolved = "해소됨"
+}
+
 struct Agreement: Identifiable, Codable {
     let id: UUID
     var content: String
@@ -48,9 +55,20 @@ class SessionModel: ObservableObject {
     @Published var stancePositions: [StancePosition] = []
     @Published var showMediationPrompt: Bool = false
     @Published var currentPrompt: String = ""
-    
+    @Published var personAEmotion: EmotionalState = .neutral
+    @Published var personBEmotion: EmotionalState = .neutral
+
     private var timer: Timer?
     private let turnTimeLimit: TimeInterval = 120
+
+    var anyoneHurt: Bool {
+        personAEmotion == .hurt || personBEmotion == .hurt
+    }
+
+    var emotionsResolved: Bool {
+        (personAEmotion == .resolved || personAEmotion == .good || personAEmotion == .neutral) &&
+        (personBEmotion == .resolved || personBEmotion == .good || personBEmotion == .neutral)
+    }
     
     let mediationPrompts = [
         "상대방이 방금 한 말을 자신의 언어로 요약해보세요",

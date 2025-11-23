@@ -127,8 +127,18 @@ struct TimerView: View {
                 .padding(.horizontal)
                 
                 Spacer()
-                
+
                 VStack(spacing: 15) {
+                    // 시작 안내 텍스트
+                    if session.currentSpeaker == .none {
+                        Text("사람을 탭해서 대화를 시작해주세요")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+
                     Button(action: {
                         if session.isActive {
                             session.pauseSession()
@@ -198,18 +208,19 @@ struct SpeakerTimerCard: View {
     let color: Color
     let isActive: Bool
     let action: () -> Void
-    
+    @State private var blinkOpacity: Double = 1.0
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 15) {
                 Text(name)
                     .font(.headline)
                     .foregroundColor(.primary)
-                
+
                 Text(time)
                     .font(.system(size: 40, weight: .bold, design: .rounded))
                     .foregroundColor(color)
-                
+
                 if isActive {
                     HStack(spacing: 5) {
                         Circle()
@@ -223,6 +234,12 @@ struct SpeakerTimerCard: View {
                     Text("탭하여 시작")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                        .opacity(blinkOpacity)
+                        .onAppear {
+                            withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                                blinkOpacity = 0.3
+                            }
+                        }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -246,27 +263,58 @@ struct SplitScreenTimerView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            VStack(spacing: 0) {
-                // 사람 A 영역 (180도 회전 - 윗쪽에서 보는 사람용)
-                SinglePersonTimerView(
-                    session: session,
-                    person: .personA,
-                    personName: "사람 A",
-                    personTime: session.personATime,
-                    color: .blue
-                )
-                .frame(height: geometry.size.height / 2)
-                .rotationEffect(.degrees(180))
+            ZStack {
+                VStack(spacing: 0) {
+                    // 사람 A 영역 (180도 회전 - 윗쪽에서 보는 사람용)
+                    SinglePersonTimerView(
+                        session: session,
+                        person: .personA,
+                        personName: "사람 A",
+                        personTime: session.personATime,
+                        color: .blue
+                    )
+                    .frame(height: geometry.size.height / 2)
+                    .rotationEffect(.degrees(180))
 
-                // 사람 B 영역 (정상 방향 - 아랫쪽에서 보는 사람용)
-                SinglePersonTimerView(
-                    session: session,
-                    person: .personB,
-                    personName: "사람 B",
-                    personTime: session.personBTime,
-                    color: .green
-                )
-                .frame(height: geometry.size.height / 2)
+                    // 사람 B 영역 (정상 방향 - 아랫쪽에서 보는 사람용)
+                    SinglePersonTimerView(
+                        session: session,
+                        person: .personB,
+                        personName: "사람 B",
+                        personTime: session.personBTime,
+                        color: .green
+                    )
+                    .frame(height: geometry.size.height / 2)
+                }
+
+                // 중앙 일시정지/재개 버튼
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            if session.isActive {
+                                session.pauseSession()
+                            } else {
+                                session.startSession()
+                            }
+                        }) {
+                            Image(systemName: session.isActive ? "pause.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(.white)
+                                .background(
+                                    Circle()
+                                        .fill(session.isActive ? Color.orange : Color.blue)
+                                        .frame(width: 60, height: 60)
+                                )
+                                .shadow(color: Color.black.opacity(0.3), radius: 10)
+                        }
+                        .disabled(session.currentSpeaker == .none)
+                        .opacity(session.currentSpeaker == .none ? 0.5 : 1.0)
+                        Spacer()
+                    }
+                    Spacer()
+                }
             }
         }
         .edgesIgnoringSafeArea(.all)
@@ -279,76 +327,87 @@ struct SinglePersonTimerView: View {
     let personName: String
     let personTime: TimeInterval
     let color: Color
+    @State private var blinkOpacity: Double = 1.0
 
     var isActive: Bool {
         session.currentSpeaker == person
     }
 
     var body: some View {
-        VStack(spacing: 15) {
-            Spacer()
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                // 상단 여백 (safe area 고려 - 더 넉넉하게)
+                Spacer()
+                    .frame(height: max(geometry.safeAreaInsets.top + 40, 60))
 
-            // 타이머 표시
-            VStack(spacing: 10) {
-                Text(personName)
-                    .font(.title2)
-                    .fontWeight(.bold)
+                Spacer()
 
-                Text(session.timeString(from: personTime))
-                    .font(.system(size: 60, weight: .bold, design: .rounded))
-                    .foregroundColor(color)
+                // 타이머 표시
+                VStack(spacing: 10) {
+                    Text(personName)
+                        .font(.title2)
+                        .fontWeight(.bold)
 
-                if isActive {
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 12, height: 12)
-                        Text("말하는 중")
-                            .font(.headline)
+                    Text(session.timeString(from: personTime))
+                        .font(.system(size: 60, weight: .bold, design: .rounded))
+                        .foregroundColor(color)
+
+                    if isActive {
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 12, height: 12)
+                            Text("말하는 중")
+                                .font(.headline)
+                        }
                     }
-                } else {
-                    Text("탭하여 시작")
-                        .font(.headline)
+                }
+
+                Spacer()
+
+                // 컨트롤 영역 (버튼 대신 안내 텍스트만)
+                VStack(spacing: 12) {
+                    // 시작 안내 텍스트 (반짝임 효과)
+                    if !isActive {
+                        Text("화면을 터치하여 시작")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(color)
+                            .opacity(blinkOpacity)
+                            .onAppear {
+                                withAnimation(Animation.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                                    blinkOpacity = 0.3
+                                }
+                            }
+                    }
+
+                    // 발화 시간 비율 표시
+                    let percentage = person == .personA ?
+                        Int(session.timeBalancePercentage() * 100) :
+                        Int((1 - session.timeBalancePercentage()) * 100)
+
+                    Text("발화 비율: \(percentage)%")
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
+                .padding(.bottom, 20)
+
+                // 하단 여백 (safe area 고려 - 더 넉넉하게)
+                Spacer()
+                    .frame(height: max(geometry.safeAreaInsets.bottom + 40, 60))
             }
-
-            Spacer()
-
-            // 컨트롤 버튼
-            VStack(spacing: 12) {
-                Button(action: {
-                    if session.currentSpeaker == person {
-                        session.pauseSession()
-                    } else {
-                        session.switchSpeaker(to: person)
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: isActive ? "pause.fill" : "play.fill")
-                        Text(isActive ? "일시정지" : "시작")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(isActive ? Color.orange : color)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(isActive ? color.opacity(0.05) : Color(UIColor.systemBackground))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if session.currentSpeaker == person {
+                    // 이미 말하고 있으면 아무것도 안 함 (중앙 버튼으로 일시정지)
+                } else {
+                    // 상대방이 말하고 있거나 아무도 안 말하면 턴 전환
+                    session.switchSpeaker(to: person)
                 }
-                .padding(.horizontal, 30)
-
-                // 발화 시간 비율 표시
-                let percentage = person == .personA ?
-                    Int(session.timeBalancePercentage() * 100) :
-                    Int((1 - session.timeBalancePercentage()) * 100)
-
-                Text("발화 비율: \(percentage)%")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
             }
-            .padding(.bottom, 20)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(isActive ? color.opacity(0.05) : Color(UIColor.systemBackground))
     }
 }
 

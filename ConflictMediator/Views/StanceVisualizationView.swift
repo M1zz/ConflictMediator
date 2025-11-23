@@ -255,6 +255,16 @@ struct AddStanceView: View {
     var body: some View {
         NavigationView {
             Form {
+                Section(header: Text("💡 논점 정하기 팁")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        TipRow(icon: "1.circle.fill", text: "구체적이고 명확한 주제를 정하세요", example: "예: \"이번 주말 계획\"")
+                        TipRow(icon: "2.circle.fill", text: "한 문장으로 요약할 수 있어야 합니다", example: "예: \"반려동물 키우기\"")
+                        TipRow(icon: "3.circle.fill", text: "양측의 입장이 명확히 다른 주제", example: "예: \"집 구매 vs 전세\"")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+
                 Section(header: Text("주제")) {
                     TextField("예: 여행 계획", text: $topic)
                 }
@@ -406,6 +416,27 @@ struct EditStanceView: View {
                     }
                     .disabled(topic.isEmpty)
                 }
+            }
+        }
+    }
+}
+
+struct TipRow: View {
+    let icon: String
+    let text: String
+    let example: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .foregroundColor(.blue)
+                .font(.caption)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(text)
+                    .fontWeight(.medium)
+                Text(example)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
         }
     }
