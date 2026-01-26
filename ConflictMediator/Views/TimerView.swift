@@ -7,8 +7,11 @@ enum DisplayMode {
 
 struct TimerView: View {
     @ObservedObject var session: SessionModel
+    var historyManager: SessionHistoryManager?
     @State private var showResetConfirmation = false
+    @State private var showEndConfirmation = false
     @State private var displayMode: DisplayMode = .normal
+    @State private var showGoalDetails = false
 
     var body: some View {
         if displayMode == .splitScreen {
@@ -33,6 +36,7 @@ struct TimerView: View {
                     Spacer()
                 }
             }
+            .toolbar(.hidden, for: .tabBar)
             .alert("세션 초기화", isPresented: $showResetConfirmation) {
                 Button("취소", role: .cancel) { }
                 Button("초기화", role: .destructive) {
@@ -53,126 +57,205 @@ struct TimerView: View {
 
     var normalModeView: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                HStack {
-                    Text("세션 상태:")
-                        .font(.headline)
-                    Text(session.isActive ? "진행 중" : "일시정지")
-                        .foregroundColor(session.isActive ? .green : .orange)
-                        .fontWeight(.bold)
-                }
-                .padding()
-                
-                VStack(spacing: 10) {
-                    Text("발화 시간 균형")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
-                    GeometryReader { geometry in
-                        HStack(spacing: 0) {
-                            Rectangle()
-                                .fill(Color.blue)
-                                .frame(width: geometry.size.width * session.timeBalancePercentage())
-                            
-                            Rectangle()
-                                .fill(Color.green)
-                                .frame(width: geometry.size.width * (1 - session.timeBalancePercentage()))
-                        }
-                    }
-                    .frame(height: 20)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .padding(.horizontal)
-                    
-                    HStack {
-                        Text("A: \(Int(session.timeBalancePercentage() * 100))%")
-                            .foregroundColor(.blue)
-                        Spacer()
-                        Text("B: \(Int((1 - session.timeBalancePercentage()) * 100))%")
-                            .foregroundColor(.green)
-                    }
-                    .font(.caption)
-                    .padding(.horizontal)
-                }
-                .frame(height: 80)
-                
-                HStack(spacing: 20) {
-                    SpeakerTimerCard(
-                        name: "사람 A",
-                        time: session.timeString(from: session.personATime),
-                        color: .blue,
-                        isActive: session.currentSpeaker == .personA,
-                        action: {
-                            if session.currentSpeaker == .personA {
-                                session.pauseSession()
-                            } else {
-                                session.switchSpeaker(to: .personA)
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(spacing: 12) {
+                        if !session.configuration.topic.isEmpty {
+                            Button(action: {
+                                showGoalDetails = true
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "target")
+                                        .foregroundColor(.blue)
+                                        .font(.subheadline)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("대화 목표")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                        Text(session.configuration.topic)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .lineLimit(1)
+                                            .foregroundColor(.primary)
+                                    }
+                                    Spacer()
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.blue)
+                                            .font(.caption2)
+                                        Text("상세")
+                                            .font(.caption2)
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color.blue.opacity(0.12))
+                                        .shadow(color: Color.blue.opacity(0.2), radius: 2, x: 0, y: 1)
+                                )
+                                .padding(.horizontal)
                             }
+                            .buttonStyle(.plain)
                         }
-                    )
-                    
-                    SpeakerTimerCard(
-                        name: "사람 B",
-                        time: session.timeString(from: session.personBTime),
-                        color: .green,
-                        isActive: session.currentSpeaker == .personB,
-                        action: {
-                            if session.currentSpeaker == .personB {
-                                session.pauseSession()
-                            } else {
-                                session.switchSpeaker(to: .personB)
-                            }
-                        }
-                    )
-                }
-                .padding(.horizontal)
-                
-                Spacer()
 
-                VStack(spacing: 15) {
-                    // 시작 안내 텍스트
-                    if session.currentSpeaker == .none {
-                        Text("사람을 탭해서 대화를 시작해주세요")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                            .multilineTextAlignment(.center)
+                        HStack {
+                            HStack(spacing: 4) {
+                                Text("남은 시간")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(session.sessionTimeRemainingString())
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(session.sessionTimeRemaining < 300 ? .red : .primary)
+                            }
+
+                            Spacer()
+
+                            if session.audioRecorder.isRecording {
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 6, height: 6)
+                                    Text("녹음")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+
+                        VStack(spacing: 6) {
+                            Text("발화 시간 균형")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+
+                            HStack(spacing: 0) {
+                                Rectangle()
+                                    .fill(Color.blue)
+                                    .frame(width: (geometry.size.width - 32) * session.timeBalancePercentage())
+
+                                Rectangle()
+                                    .fill(Color.green)
+                                    .frame(width: (geometry.size.width - 32) * (1 - session.timeBalancePercentage()))
+                            }
+                            .frame(height: 16)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                             .padding(.horizontal)
-                    }
 
-                    Button(action: {
-                        if session.isActive {
-                            session.pauseSession()
-                        } else {
-                            session.startSession()
+                            HStack {
+                                Text("A: \(Int(session.timeBalancePercentage() * 100))%")
+                                    .foregroundColor(.blue)
+                                Spacer()
+                                Text("B: \(Int((1 - session.timeBalancePercentage()) * 100))%")
+                                    .foregroundColor(.green)
+                            }
+                            .font(.caption2)
+                            .padding(.horizontal)
                         }
-                    }) {
-                        HStack {
-                            Image(systemName: session.isActive ? "pause.fill" : "play.fill")
-                            Text(session.isActive ? "일시정지" : "재개")
+
+                        HStack(spacing: min(20, geometry.size.width * 0.04)) {
+                            SpeakerTimerCard(
+                                name: session.speakerName(for: .personA),
+                                time: session.timeString(from: session.personATime),
+                                color: .blue,
+                                isActive: session.currentSpeaker == .personA,
+                                action: {
+                                    if session.currentSpeaker == .personA {
+                                        session.pauseSession()
+                                    } else {
+                                        session.switchSpeaker(to: .personA)
+                                    }
+                                }
+                            )
+
+                            SpeakerTimerCard(
+                                name: session.speakerName(for: .personB),
+                                time: session.timeString(from: session.personBTime),
+                                color: .green,
+                                isActive: session.currentSpeaker == .personB,
+                                action: {
+                                    if session.currentSpeaker == .personB {
+                                        session.pauseSession()
+                                    } else {
+                                        session.switchSpeaker(to: .personB)
+                                    }
+                                }
+                            )
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(session.isActive ? Color.orange : Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                    }
-                    .disabled(session.currentSpeaker == .none)
-                    
-                    Button(action: {
-                        showResetConfirmation = true
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.counterclockwise")
-                            Text("세션 초기화")
+                        .padding(.horizontal)
+
+                        VStack(spacing: 8) {
+                            if session.currentSpeaker == .none {
+                                Text("사람을 탭해서 대화를 시작해주세요")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                                    .minimumScaleFactor(0.8)
+                                    .lineLimit(1)
+                            }
+
+                            HStack(spacing: 8) {
+                                Button(action: {
+                                    if session.isActive {
+                                        session.pauseSession()
+                                    } else {
+                                        session.startSession()
+                                    }
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: session.isActive ? "pause.fill" : "play.fill")
+                                            .font(.caption)
+                                        Text(session.isActive ? "일시정지" : "재개")
+                                            .font(.subheadline)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(session.isActive ? Color.orange : Color.blue)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                                }
+                                .disabled(session.currentSpeaker == .none)
+
+                                Button(action: {
+                                    showEndConfirmation = true
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "stop.fill")
+                                            .font(.caption)
+                                        Text("종료")
+                                            .font(.subheadline)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(Color.orange.opacity(0.8))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                                }
+
+                                Button(action: {
+                                    showResetConfirmation = true
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "arrow.counterclockwise")
+                                            .font(.caption)
+                                        Text("초기화")
+                                            .font(.subheadline)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(Color.red.opacity(0.8))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                                }
+                            }
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red.opacity(0.8))
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .padding(.horizontal)
+                        .padding(.bottom, max(0, geometry.safeAreaInsets.bottom))
                     }
                 }
-                .padding()
             }
             .navigationTitle("대화 타이머")
             .toolbar {
@@ -193,10 +276,26 @@ struct TimerView: View {
             } message: {
                 Text("모든 타이머와 기록이 초기화됩니다. 계속하시겠습니까?")
             }
+            .alert("세션 종료", isPresented: $showEndConfirmation) {
+                Button("취소", role: .cancel) { }
+                Button("종료", role: .destructive) {
+                    // Save session to history before ending
+                    if let historyManager = historyManager {
+                        let history = session.createSessionHistory()
+                        historyManager.saveHistory(history)
+                    }
+                    session.endSession()
+                }
+            } message: {
+                Text("세션을 종료하시겠습니까? 녹음이 저장되고 대화 기록에 추가됩니다.")
+            }
             .alert(session.currentPrompt, isPresented: $session.showMediationPrompt) {
                 Button("확인", role: .cancel) { }
             } message: {
                 Text("중재 제안")
+            }
+            .sheet(isPresented: $showGoalDetails) {
+                GoalDetailsView(configuration: session.configuration)
             }
         }
     }
@@ -211,50 +310,62 @@ struct SpeakerTimerCard: View {
     @State private var blinkOpacity: Double = 1.0
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 15) {
-                Text(name)
-                    .font(.headline)
-                    .foregroundColor(.primary)
+        GeometryReader { geometry in
+            Button(action: action) {
+                VStack(spacing: min(8, geometry.size.height * 0.08)) {
+                    Text(name)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
 
-                Text(time)
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .foregroundColor(color)
+                    Text(time)
+                        .font(.system(size: min(36, geometry.size.width * 0.22), weight: .bold, design: .rounded))
+                        .foregroundColor(color)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
 
-                if isActive {
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 8, height: 8)
-                        Text("말하는 중")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                } else {
-                    Text("탭하여 시작")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .opacity(blinkOpacity)
-                        .onAppear {
-                            withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-                                blinkOpacity = 0.3
-                            }
+                    if isActive {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 6, height: 6)
+                            Text("말하는 중")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(1)
                         }
+                    } else {
+                        Text("탭하여 시작")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .opacity(blinkOpacity)
+                            .minimumScaleFactor(0.8)
+                            .lineLimit(1)
+                            .onAppear {
+                                withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                                    blinkOpacity = 0.3
+                                }
+                            }
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.vertical, min(16, geometry.size.height * 0.12))
+                .background(
+                    RoundedRectangle(cornerRadius: 15)
+                        .fill(isActive ? color.opacity(0.1) : Color(UIColor.systemBackground))
+                        .shadow(color: isActive ? color.opacity(0.3) : Color.black.opacity(0.1), radius: isActive ? 10 : 5)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15)
+                        .stroke(isActive ? color : Color.clear, lineWidth: 3)
+                )
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 30)
-            .background(
-                RoundedRectangle(cornerRadius: 15)
-                    .fill(isActive ? color.opacity(0.1) : Color(UIColor.systemBackground))
-                    .shadow(color: isActive ? color.opacity(0.3) : Color.black.opacity(0.1), radius: isActive ? 10 : 5)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 15)
-                    .stroke(isActive ? color : Color.clear, lineWidth: 3)
-            )
+            .buttonStyle(PlainButtonStyle())
         }
-        .buttonStyle(PlainButtonStyle())
+        .frame(minHeight: 120)
     }
 }
 
@@ -269,7 +380,7 @@ struct SplitScreenTimerView: View {
                     SinglePersonTimerView(
                         session: session,
                         person: .personA,
-                        personName: "사람 A",
+                        personName: session.speakerName(for: .personA),
                         personTime: session.personATime,
                         color: .blue
                     )
@@ -280,7 +391,7 @@ struct SplitScreenTimerView: View {
                     SinglePersonTimerView(
                         session: session,
                         person: .personB,
-                        personName: "사람 B",
+                        personName: session.speakerName(for: .personB),
                         personTime: session.personBTime,
                         color: .green
                     )
@@ -336,9 +447,9 @@ struct SinglePersonTimerView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                // 상단 여백 (safe area 고려 - 더 넉넉하게)
+                // 상단 여백 (safe area 고려)
                 Spacer()
-                    .frame(height: max(geometry.safeAreaInsets.top + 40, 60))
+                    .frame(height: max(geometry.safeAreaInsets.top + 20, 40))
 
                 Spacer()
 
@@ -347,10 +458,14 @@ struct SinglePersonTimerView: View {
                     Text(personName)
                         .font(.title2)
                         .fontWeight(.bold)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
 
                     Text(session.timeString(from: personTime))
-                        .font(.system(size: 60, weight: .bold, design: .rounded))
+                        .font(.system(size: min(60, geometry.size.width * 0.15), weight: .bold, design: .rounded))
                         .foregroundColor(color)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
 
                     if isActive {
                         HStack(spacing: 5) {
@@ -359,9 +474,12 @@ struct SinglePersonTimerView: View {
                                 .frame(width: 12, height: 12)
                             Text("말하는 중")
                                 .font(.headline)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(1)
                         }
                     }
                 }
+                .padding(.horizontal)
 
                 Spacer()
 
@@ -374,6 +492,10 @@ struct SinglePersonTimerView: View {
                             .fontWeight(.semibold)
                             .foregroundColor(color)
                             .opacity(blinkOpacity)
+                            .minimumScaleFactor(0.7)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                             .onAppear {
                                 withAnimation(Animation.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
                                     blinkOpacity = 0.3
@@ -389,12 +511,15 @@ struct SinglePersonTimerView: View {
                     Text("발화 비율: \(percentage)%")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
                 }
                 .padding(.bottom, 20)
+                .padding(.horizontal)
 
-                // 하단 여백 (safe area 고려 - 더 넉넉하게)
+                // 하단 여백 (safe area 고려)
                 Spacer()
-                    .frame(height: max(geometry.safeAreaInsets.bottom + 40, 60))
+                    .frame(height: max(geometry.safeAreaInsets.bottom + 20, 40))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(isActive ? color.opacity(0.05) : Color(UIColor.systemBackground))
@@ -413,4 +538,142 @@ struct SinglePersonTimerView: View {
 
 #Preview {
     TimerView(session: SessionModel())
+}
+
+// MARK: - GoalDetailsView
+
+struct GoalDetailsView: View {
+    @Environment(\.dismiss) var dismiss
+    let configuration: SessionConfiguration
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    // 대화 목표
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "target")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                            Text("대화 목표")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                        }
+
+                        Text(configuration.topic)
+                            .font(.body)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.blue.opacity(0.1))
+                            )
+                    }
+
+                    Divider()
+
+                    // 참여자
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "person.2")
+                                .font(.title3)
+                                .foregroundColor(.green)
+                            Text("참여자")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                        }
+
+                        HStack(spacing: 20) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("첫 번째 참여자")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(configuration.personAName)
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("두 번째 참여자")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(configuration.personBName)
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.green.opacity(0.1))
+                        )
+                    }
+
+                    Divider()
+
+                    // 목표 시간
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "clock")
+                                .font(.title3)
+                                .foregroundColor(.orange)
+                            Text("목표 시간")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                        }
+
+                        Text("\(Int(configuration.targetDuration / 60))분")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(.orange)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.orange.opacity(0.1))
+                            )
+                    }
+
+                    // 기대 결과
+                    if !configuration.expectedOutcome.isEmpty {
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "star")
+                                    .font(.title3)
+                                    .foregroundColor(.purple)
+                                Text("기대 결과")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                            }
+
+                            Text(configuration.expectedOutcome)
+                                .font(.body)
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.purple.opacity(0.1))
+                                )
+                        }
+                    }
+
+                    Spacer()
+                }
+                .padding()
+            }
+            .navigationTitle("대화 목표 확인")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("닫기") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
 }

@@ -15,22 +15,30 @@ struct StanceVisualizationView: View {
         NavigationView {
             VStack {
                 if session.stancePositions.isEmpty {
-                    VStack(spacing: 20) {
-                        Image(systemName: "chart.bar.xaxis")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                        
-                        Text("아직 입장 차이가 기록되지 않았습니다")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        Text("아래 버튼을 눌러 새로운 주제에 대한 입장을 추가하세요")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+                    GeometryReader { geometry in
+                        VStack(spacing: min(20, geometry.size.height * 0.05)) {
+                            Image(systemName: "chart.bar.xaxis")
+                                .font(.system(size: min(60, geometry.size.width * 0.15)))
+                                .foregroundColor(.gray)
+
+                            Text("아직 입장 차이가 기록되지 않았습니다")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+
+                            Text("아래 버튼을 눌러 새로운 주제에 대한 입장을 추가하세요")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(3)
+                        }
+                        .frame(width: geometry.size.width, height: geometry.size.height)
                     }
-                    .frame(maxHeight: .infinity)
                 } else {
                     ScrollView {
                         VStack(spacing: 20) {
@@ -128,120 +136,139 @@ struct StanceCard: View {
     let onDelete: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            HStack {
-                Text(stance.topic)
-                    .font(.headline)
-
-                Spacer()
-
-                Button(action: onEdit) {
-                    Image(systemName: "pencil.circle.fill")
-                        .foregroundColor(.blue)
-                        .imageScale(.large)
-                }
-                .buttonStyle(PlainButtonStyle())
-
-                Button(action: onDelete) {
-                    Image(systemName: "trash.circle.fill")
-                        .foregroundColor(.red)
-                        .imageScale(.large)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            
-            VStack(spacing: 8) {
+        GeometryReader { outerGeometry in
+            VStack(alignment: .leading, spacing: 15) {
                 HStack {
-                    Text("사람 A")
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                        .frame(width: 60, alignment: .leading)
-                    
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(height: 8)
-                                .clipShape(Capsule())
-                            
-                            Rectangle()
-                                .fill(Color.blue)
-                                .frame(width: geometry.size.width * stance.personA, height: 8)
-                                .clipShape(Capsule())
-                            
-                            Circle()
-                                .fill(Color.blue)
-                                .frame(width: 20, height: 20)
-                                .offset(x: geometry.size.width * stance.personA - 10)
-                        }
+                    Text(stance.topic)
+                        .font(.headline)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(2)
+
+                    Spacer()
+
+                    Button(action: onEdit) {
+                        Image(systemName: "pencil.circle.fill")
+                            .foregroundColor(.blue)
+                            .imageScale(.large)
                     }
-                    .frame(height: 20)
-                    
-                    Text("\(Int(stance.personA * 100))%")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                        .frame(width: 45, alignment: .trailing)
+                    .buttonStyle(PlainButtonStyle())
+
+                    Button(action: onDelete) {
+                        Image(systemName: "trash.circle.fill")
+                            .foregroundColor(.red)
+                            .imageScale(.large)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
-                
+
+                VStack(spacing: 8) {
+                    HStack {
+                        Text("사람 A")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                            .frame(width: max(50, outerGeometry.size.width * 0.15), alignment: .leading)
+                            .minimumScaleFactor(0.8)
+                            .lineLimit(1)
+
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.2))
+                                    .frame(height: 8)
+                                    .clipShape(Capsule())
+
+                                Rectangle()
+                                    .fill(Color.blue)
+                                    .frame(width: geometry.size.width * stance.personA, height: 8)
+                                    .clipShape(Capsule())
+
+                                Circle()
+                                    .fill(Color.blue)
+                                    .frame(width: 20, height: 20)
+                                    .offset(x: geometry.size.width * stance.personA - 10)
+                            }
+                        }
+                        .frame(height: 20)
+
+                        Text("\(Int(stance.personA * 100))%")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                            .frame(width: max(35, outerGeometry.size.width * 0.12), alignment: .trailing)
+                            .minimumScaleFactor(0.8)
+                            .lineLimit(1)
+                    }
+
+                    HStack {
+                        Text("사람 B")
+                            .font(.subheadline)
+                            .foregroundColor(.green)
+                            .frame(width: max(50, outerGeometry.size.width * 0.15), alignment: .leading)
+                            .minimumScaleFactor(0.8)
+                            .lineLimit(1)
+
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.2))
+                                    .frame(height: 8)
+                                    .clipShape(Capsule())
+
+                                Rectangle()
+                                    .fill(Color.green)
+                                    .frame(width: geometry.size.width * stance.personB, height: 8)
+                                    .clipShape(Capsule())
+
+                                Circle()
+                                    .fill(Color.green)
+                                    .frame(width: 20, height: 20)
+                                    .offset(x: geometry.size.width * stance.personB - 10)
+                            }
+                        }
+                        .frame(height: 20)
+
+                        Text("\(Int(stance.personB * 100))%")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                            .frame(width: max(35, outerGeometry.size.width * 0.12), alignment: .trailing)
+                            .minimumScaleFactor(0.8)
+                            .lineLimit(1)
+                    }
+                }
+
                 HStack {
-                    Text("사람 B")
-                        .font(.subheadline)
-                        .foregroundColor(.green)
-                        .frame(width: 60, alignment: .leading)
-                    
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(height: 8)
-                                .clipShape(Capsule())
-                            
-                            Rectangle()
-                                .fill(Color.green)
-                                .frame(width: geometry.size.width * stance.personB, height: 8)
-                                .clipShape(Capsule())
-                            
-                            Circle()
-                                .fill(Color.green)
-                                .frame(width: 20, height: 20)
-                                .offset(x: geometry.size.width * stance.personB - 10)
-                        }
-                    }
-                    .frame(height: 20)
-                    
-                    Text("\(Int(stance.personB * 100))%")
+                    Image(systemName: "arrow.left.and.right")
+                        .foregroundColor(.orange)
+                    Text("입장 차이: \(Int(abs(stance.personA - stance.personB) * 100))%")
                         .font(.caption)
-                        .foregroundColor(.green)
-                        .frame(width: 45, alignment: .trailing)
+                        .foregroundColor(.orange)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
                 }
+                .padding(.top, 5)
+
+                HStack {
+                    Text("전혀 동의 안함")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
+                    Spacer()
+                    Text("완전 동의함")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, max(40, outerGeometry.size.width * 0.12))
             }
-            
-            HStack {
-                Image(systemName: "arrow.left.and.right")
-                    .foregroundColor(.orange)
-                Text("입장 차이: \(Int(abs(stance.personA - stance.personB) * 100))%")
-                    .font(.caption)
-                    .foregroundColor(.orange)
-            }
-            .padding(.top, 5)
-            
-            HStack {
-                Text("전혀 동의 안함")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Text("완전 동의함")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 60)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 15)
+                    .fill(Color(UIColor.systemBackground))
+                    .shadow(color: Color.black.opacity(0.1), radius: 5)
+            )
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 15)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 5)
-        )
+        .frame(minHeight: 180)
     }
 }
 

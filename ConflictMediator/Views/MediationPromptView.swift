@@ -5,24 +5,29 @@ struct MediationPromptView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // 감정 체크 섹션
-                    VStack(spacing: 15) {
-                        HStack {
-                            Image(systemName: "heart.text.square.fill")
-                                .font(.system(size: 40))
-                                .foregroundColor(.pink)
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text("감정 상태 체크")
-                                    .font(.headline)
-                                Text("대화 전 감정을 확인하세요")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+            GeometryReader { outerGeometry in
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // 감정 체크 섹션
+                        VStack(spacing: 15) {
+                            HStack {
+                                Image(systemName: "heart.text.square.fill")
+                                    .font(.system(size: min(40, outerGeometry.size.width * 0.1)))
+                                    .foregroundColor(.pink)
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("감정 상태 체크")
+                                        .font(.headline)
+                                        .minimumScaleFactor(0.8)
+                                        .lineLimit(1)
+                                    Text("대화 전 감정을 확인하세요")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .minimumScaleFactor(0.8)
+                                        .lineLimit(1)
+                                }
+                                Spacer()
                             }
-                            Spacer()
-                        }
-                        .padding()
+                            .padding()
 
                         EmotionCheckCard(
                             person: "사람 A",
@@ -63,67 +68,75 @@ struct MediationPromptView: View {
                     }
                     .padding(.top)
 
-                    Divider()
-                        .padding(.horizontal)
-
-                    VStack(spacing: 10) {
-                        Image(systemName: "lightbulb.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(.yellow)
-
-                        Text("대화를 더 건설적으로 만들어보세요")
-                            .font(.headline)
-                            .multilineTextAlignment(.center)
-
-                        Text("아래 제안들을 참고하여 서로를 이해하고 갈등을 해결해보세요")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
+                        Divider()
                             .padding(.horizontal)
-                    }
 
-                    Divider()
-                        .padding(.horizontal)
-                    
-                    VStack(spacing: 15) {
-                        ForEach(session.mediationPrompts, id: \.self) { prompt in
-                            PromptCard(prompt: prompt)
+                        VStack(spacing: 10) {
+                            Image(systemName: "lightbulb.fill")
+                                .font(.system(size: min(50, outerGeometry.size.width * 0.12)))
+                                .foregroundColor(.yellow)
+
+                            Text("대화를 더 건설적으로 만들어보세요")
+                                .font(.headline)
+                                .multilineTextAlignment(.center)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(2)
+                                .padding(.horizontal)
+
+                            Text("아래 제안들을 참고하여 서로를 이해하고 갈등을 해결해보세요")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(3)
                         }
-                    }
-                    .padding(.horizontal)
-                    
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text("대화 팁")
-                            .font(.headline)
+
+                        Divider()
                             .padding(.horizontal)
-                        
-                        TipCard(
-                            icon: "ear",
-                            title: "적극적 경청",
-                            description: "상대방의 말을 끝까지 듣고, 이해한 내용을 확인하세요"
-                        )
-                        
-                        TipCard(
-                            icon: "person.2",
-                            title: "I-Message 사용",
-                            description: "'당신이 ~했어'보다 '나는 ~라고 느꼈어'로 표현하세요"
-                        )
-                        
-                        TipCard(
-                            icon: "clock",
-                            title: "휴식 시간",
-                            description: "감정이 격해지면 5-10분 휴식 후 다시 대화하세요"
-                        )
-                        
-                        TipCard(
-                            icon: "target",
-                            title: "문제 해결 집중",
-                            description: "과거 비난보다 미래 해결책에 초점을 맞추세요"
-                        )
+                    
+                        VStack(spacing: 15) {
+                            ForEach(session.mediationPrompts, id: \.self) { prompt in
+                                PromptCard(prompt: prompt)
+                            }
+                        }
+                        .padding(.horizontal)
+
+                        VStack(alignment: .leading, spacing: 15) {
+                            Text("대화 팁")
+                                .font(.headline)
+                                .padding(.horizontal)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(1)
+
+                            TipCard(
+                                icon: "ear",
+                                title: "적극적 경청",
+                                description: "상대방의 말을 끝까지 듣고, 이해한 내용을 확인하세요"
+                            )
+
+                            TipCard(
+                                icon: "person.2",
+                                title: "I-Message 사용",
+                                description: "'당신이 ~했어'보다 '나는 ~라고 느꼈어'로 표현하세요"
+                            )
+
+                            TipCard(
+                                icon: "clock",
+                                title: "휴식 시간",
+                                description: "감정이 격해지면 5-10분 휴식 후 다시 대화하세요"
+                            )
+
+                            TipCard(
+                                icon: "target",
+                                title: "문제 해결 집중",
+                                description: "과거 비난보다 미래 해결책에 초점을 맞추세요"
+                            )
+                        }
+                        .padding(.top)
                     }
-                    .padding(.top)
+                    .padding(.bottom, max(20, outerGeometry.safeAreaInsets.bottom + 20))
                 }
-                .padding(.bottom)
             }
             .navigationTitle("중재 도움말")
         }
@@ -132,18 +145,20 @@ struct MediationPromptView: View {
 
 struct PromptCard: View {
     let prompt: String
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Image(systemName: "quote.opening")
                     .foregroundColor(.blue)
                     .font(.caption)
-                
+
                 Text(prompt)
                     .font(.body)
                     .foregroundColor(.primary)
-                
+                    .minimumScaleFactor(0.8)
+                    .lineLimit(3)
+
                 Spacer()
             }
         }
@@ -164,24 +179,28 @@ struct TipCard: View {
     let icon: String
     let title: String
     let description: String
-    
+
     var body: some View {
         HStack(alignment: .top, spacing: 15) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(.orange)
                 .frame(width: 30)
-            
+
             VStack(alignment: .leading, spacing: 5) {
                 Text(title)
                     .font(.headline)
                     .foregroundColor(.primary)
-                
+                    .minimumScaleFactor(0.8)
+                    .lineLimit(2)
+
                 Text(description)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+                    .minimumScaleFactor(0.8)
+                    .lineLimit(3)
             }
-            
+
             Spacer()
         }
         .padding()

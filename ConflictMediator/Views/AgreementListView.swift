@@ -8,40 +8,48 @@ struct AgreementListView: View {
 
     var body: some View {
         NavigationView {
-            VStack {
-                if session.agreements.isEmpty {
-                    VStack(spacing: 20) {
-                        Image(systemName: "checkmark.circle")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                        
-                        Text("아직 합의된 사항이 없습니다")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        Text("대화 중 합의한 내용을 기록하세요")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
-                    .frame(maxHeight: .infinity)
-                } else {
-                    List {
-                        ForEach(session.agreements) { agreement in
-                            AgreementRow(
-                                agreement: agreement,
-                                onConfirmByA: {
-                                    session.confirmAgreement(agreement, by: .personA)
-                                },
-                                onConfirmByB: {
-                                    session.confirmAgreement(agreement, by: .personB)
-                                },
-                                session: session
-                            )
+            GeometryReader { geometry in
+                VStack {
+                    if session.agreements.isEmpty {
+                        VStack(spacing: min(20, geometry.size.height * 0.05)) {
+                            Image(systemName: "checkmark.circle")
+                                .font(.system(size: min(60, geometry.size.width * 0.15)))
+                                .foregroundColor(.gray)
+
+                            Text("아직 합의된 사항이 없습니다")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+
+                            Text("대화 중 합의한 내용을 기록하세요")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(2)
                         }
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                    } else {
+                        List {
+                            ForEach(session.agreements) { agreement in
+                                AgreementRow(
+                                    agreement: agreement,
+                                    onConfirmByA: {
+                                        session.confirmAgreement(agreement, by: .personA)
+                                    },
+                                    onConfirmByB: {
+                                        session.confirmAgreement(agreement, by: .personB)
+                                    },
+                                    session: session
+                                )
+                            }
+                        }
+                        .listStyle(InsetGroupedListStyle())
                     }
-                    .listStyle(InsetGroupedListStyle())
                 }
             }
             .navigationTitle("합의 사항")
@@ -102,6 +110,8 @@ struct AgreementRow: View {
                         .font(.caption)
                         .foregroundColor(.orange)
                         .fontWeight(.semibold)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
@@ -111,11 +121,15 @@ struct AgreementRow: View {
 
             Text(agreement.content)
                 .font(.body)
+                .minimumScaleFactor(0.9)
+                .lineLimit(5)
 
             Text(dateFormatter.string(from: agreement.timestamp))
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+                .minimumScaleFactor(0.8)
+                .lineLimit(1)
+
             HStack(spacing: 20) {
                 Button(action: onConfirmByA) {
                     HStack(spacing: 5) {
@@ -124,10 +138,12 @@ struct AgreementRow: View {
                         Text("사람 A 확인")
                             .font(.caption)
                             .foregroundColor(agreement.confirmedByA ? .blue : .secondary)
+                            .minimumScaleFactor(0.8)
+                            .lineLimit(1)
                     }
                 }
                 .disabled(agreement.confirmedByA)
-                
+
                 Button(action: onConfirmByB) {
                     HStack(spacing: 5) {
                         Image(systemName: agreement.confirmedByB ? "checkmark.circle.fill" : "circle")
@@ -135,11 +151,13 @@ struct AgreementRow: View {
                         Text("사람 B 확인")
                             .font(.caption)
                             .foregroundColor(agreement.confirmedByB ? .green : .secondary)
+                            .minimumScaleFactor(0.8)
+                            .lineLimit(1)
                     }
                 }
                 .disabled(agreement.confirmedByB)
             }
-            
+
             if agreement.confirmedByA && agreement.confirmedByB {
                 HStack {
                     Image(systemName: "hand.thumbsup.fill")
@@ -148,6 +166,8 @@ struct AgreementRow: View {
                         .font(.caption)
                         .foregroundColor(.orange)
                         .fontWeight(.semibold)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
                 }
                 .padding(.top, 5)
             }
